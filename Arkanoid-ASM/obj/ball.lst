@@ -1,0 +1,102 @@
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180), page 1.
+Hexadecimal [16-Bits]
+
+
+
+                              1 .area _DATA
+                              2 
+                              3 ;;===============================================================================
+                              4 ;; DEFINED CONSTANTS
+                              5 ;;===============================================================================
+                              6 
+                     0000     7 Min_screen_W       = #0       ;; Min Width of the screen (bytes)
+                     0050     8 Max_screen_W       = #80      ;; Max Width of the screen (bytes)
+                     0000     9 Min_screen_H       = #0       ;; Min Height of the screen (pixels)
+                     00C8    10 Max_screen_H       = #200     ;; Max Height of the screen (pixels)
+                             11 
+                     000F    12 ball_color     = #0x0F   ;; A = Colour Pattern (0x0F = 1, 1, 1, 1)
+                             13 
+   0000                      14 ball::
+   0000 28                   15 	.db 40	;; Initial X Position
+   0001 02                   16 	.db 2	;; Initial Width
+   0002 28                   17 	.db 40	;; Initial Last X Position
+   0003 82                   18 	.db 130	;; Initial Y Position
+   0004 08                   19 	.db 8	;; Initial Height
+   0005 82                   20 	.db 130	;; Initial Last Y Position
+                             21 
+   0006                      22 ball_speed::
+   0006 FF                   23     .db -1  ;; Initial X Speed
+   0007 FF                   24     .db -1  ;; Initial Y Speed
+                             25 
+                             26 
+                             27 
+                             28 .globl move_entity_asm
+                             29 .globl render_box_entity_asm
+                             30 
+                             31 .area _CODE 
+                             32 
+   0000                      33 ball_draw_asm::
+   0000 21 00 00      [10]   34     ld hl , #ball				;; Player Pointer to HL
+   0003 3E 0F         [ 7]   35 	ld a , #ball_color		    ;; Color Pattern to A = Colour Pattern (0xFF = 3, 3, 3, 3) 
+   0005 CD 00 00      [17]   36 	call render_box_entity_asm	;; Draw Player Box
+   0008 C9            [10]   37 ret
+                             38 
+   0009                      39 ball_update_asm::
+   0009 21 06 00      [10]   40     ld hl , #ball_speed       ;; Pointer to PlayerSpeed
+   000C 46            [ 7]   41     ld b , (hl)                 ;; B = X Speed(HL)
+   000D 23            [ 6]   42     inc hl                      ;; Next Position (Y Speed)
+   000E 4E            [ 7]   43     ld c , (hl)                 ;; C = Y Speed(HL)
+   000F 21 00 00      [10]   44     ld hl , #ball               ;; HL = Entity Ball
+   0012 CD 00 00      [17]   45     call move_entity_asm        ;; Move Entity
+   0015 21 00 00      [10]   46     ld hl , #ball               ;; HL = Entity Ball
+   0018 7E            [ 7]   47     ld a , (hl)                 ;; A = X Pos(HL)
+   0019 FE 00         [ 7]   48     cp #Min_screen_W            ;; A = X Pos(A) - Min Screen Width
+   001B CC 35 00      [17]   49     call z , change_speed_x     ;; Change X Speed
+   001E 23            [ 6]   50     inc hl                      ;; Next Position HL (Width)
+   001F 86            [ 7]   51     add (hl)                    ;; A = X Pos(A) + Width(HL)
+   0020 FE 50         [ 7]   52     cp #Max_screen_W            ;; A = [ X Pos(A) + Width(A) ] - Max Screen Width
+   0022 CC 35 00      [17]   53     call z , change_speed_x     ;; Change X Speed
+   0025 23            [ 6]   54     inc hl                      ;; Next Position HL (X LPos)
+   0026 23            [ 6]   55     inc hl                      ;; Next Position HL (Y Pos)
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180), page 2.
+Hexadecimal [16-Bits]
+
+
+
+   0027 7E            [ 7]   56     ld a , (hl)                 ;; A = Y Pos(HL)
+   0028 FE 00         [ 7]   57     cp #Min_screen_H            ;; A = Y Pos(A) - Min Screen Height
+   002A CC 41 00      [17]   58     call z , change_speed_y     ;; Change Y Speed
+   002D 23            [ 6]   59     inc hl                      ;; Next Position HL (Height)
+   002E 86            [ 7]   60     add (hl)                    ;; A = Y Pos(A) + Height(HL)
+   002F FE C8         [ 7]   61     cp #Max_screen_H            ;; A = [Y Pos(A) + Height(A)]
+   0031 CC 41 00      [17]   62     call z , change_speed_y     ;; Change Y Speed
+   0034 C9            [10]   63 ret
+                             64 
+   0035                      65 change_speed_x:
+   0035 F5            [11]   66     push af
+   0036 E5            [11]   67     push hl
+   0037 21 06 00      [10]   68     ld hl , #ball_speed
+   003A 7E            [ 7]   69     ld a , (hl)
+   003B ED 44         [ 8]   70     neg
+   003D 77            [ 7]   71     ld (hl) , a
+   003E E1            [10]   72     pop hl
+   003F F1            [10]   73     pop af 
+   0040 C9            [10]   74 ret
+   0041                      75 change_speed_y::
+   0041 F5            [11]   76     push af
+   0042 E5            [11]   77     push hl
+   0043 21 06 00      [10]   78     ld hl , #ball_speed
+   0046 23            [ 6]   79     inc hl
+   0047 7E            [ 7]   80     ld a , (hl)
+   0048 ED 44         [ 8]   81     neg
+   004A 77            [ 7]   82     ld (hl) , a
+   004B E1            [10]   83     pop hl
+   004C F1            [10]   84     pop af 
+   004D C9            [10]   85 ret
+                             86 ;;===============================================================================
+                             87 ;; FUNCTION MOVE_ENTITY_ASM
+                             88 ;;
+                             89 ;; Input parameters :  HL => Pointer to TEntity
+                             90 ;;                      B => X Movement
+                             91 ;;                      C => Y Movement
+                             92 ;;===============================================================================

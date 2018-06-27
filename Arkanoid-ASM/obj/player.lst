@@ -1,0 +1,115 @@
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180), page 1.
+Hexadecimal [16-Bits]
+
+
+
+                              1 .area _DATA
+                              2 ;;===============================================================================
+                              3 ;; DEFINED CONSTANTS
+                              4 ;;===============================================================================
+                              5 
+                     00FF     6 player_color 		= #0xFF ;; Colour Pattern (0xFF = 3, 3, 3, 3) ##RED##
+                              7 
+                              8 ;;===============================================================================
+                              9 ;;      PlayerE      B1 X Position                  B2 Width
+                             10 ;;                   B3 X Last Position             B4 Y Position
+                             11 ;;                   B5 Height                      B6 Y Last Position
+                             12 ;;                   B7 X Speed                     B8 Y Speed
+                             13 ;;===============================================================================
+   0000                      14 player::
+   0000 28                   15 	.db 40	;; Initial X Position
+   0001 0A                   16 	.db 10	;; Initial Width
+   0002 28                   17 	.db 40	;; Initial Last X Position
+   0003 96                   18 	.db 150	;; Initial Y Position
+   0004 0A                   19 	.db 10	;; Initial Height
+   0005 96                   20 	.db 150	;; Initial Last Y Position
+   0006                      21 player_speed::
+   0006 01                   22 	.db 1 	;; Initial Speed
+                             23 
+                             24 
+                             25 
+                             26 .globl cpct_getScreenPtr_asm
+                             27 .globl cpct_drawSolidBox_asm
+                             28 
+                             29 .globl move_entity_asm
+                             30 .globl render_box_entity_asm
+                             31 ;;===============================================================================
+                             32 ;; CODE SECTION
+                             33 ;;===============================================================================
+                             34 
+                             35 .area _CODE 
+                             36 
+                             37 
+                             38 ;;===============================================================================
+                             39 ;; FUNCTION DRAW_ENTITY_ASM
+                             40 ;;
+                             41 ;; Input parameters :  HL => Pointer to TEntity
+                             42 ;;                     BC => Pointer to Colour Pattern
+                             43 ;;===============================================================================
+                             44 
+   0000                      45 player_draw::
+   0000 21 00 00      [10]   46 	ld hl , #player				;; Player Pointer to HL
+   0003 3E FF         [ 7]   47 	ld a , #player_color		;; Color Pattern to A = Colour Pattern (0xFF = 3, 3, 3, 3) 
+   0005 CD 00 00      [17]   48 	call render_box_entity_asm	;; Draw Player Box
+   0008 C9            [10]   49 ret
+                             50 ;;===============================================================================
+                             51 ;; FUNCTION PLAYER_UPDATE
+                             52 ;;
+                             53 ;; Input parameters :  A => ACTION
+                             54 ;; A = 0 => No Action  || A = 1 => Move Right || A = 2 => Move Left
+                             55 ;; A = 3 => Move Down  || A = 4 => Move Up 
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180), page 2.
+Hexadecimal [16-Bits]
+
+
+
+                             56 ;;===============================================================================
+   0009                      57 player_update::
+                             58 	
+   0009 B7            [ 4]   59 	or a         				;; Active Flags
+   000A C8            [11]   60 	ret z		 				;; Return IF A = 0
+   000B 21 06 00      [10]   61 	ld hl , #player_speed       ;; Pointer to PlayerSpeed
+   000E FE 04         [ 7]   62 	cp #4						;; A == 4 (Move UP)
+   0010 CA 29 00      [10]   63 	jp z , move_player_up     	;; Move UP
+   0013 FE 03         [ 7]   64 	cp #3						;; A == 3 (Move Down)
+   0015 CA 31 00      [10]   65 	jp z , move_player_down   	;; Move Down
+   0018 FE 02         [ 7]   66 	cp #2						;; A == 2 (Move Left)
+   001A CA 36 00      [10]   67 	jp z , move_player_left   	;; Move Left
+   001D FE 01         [ 7]   68 	cp #1						;; A == 1 (Move Right)
+   001F CA 3E 00      [10]   69 	jp z , move_player_right  	;; Move Right
+   0022                      70 move_player:
+   0022 21 00 00      [10]   71 	ld hl , #player				;; HL = Pointer to Player Entity
+   0025 CD 00 00      [17]   72 	call move_entity_asm		;; Move Entity
+   0028 C9            [10]   73 ret
+                             74 
+   0029                      75 move_player_up:
+   0029 7E            [ 7]   76 	ld a  , (hl)
+   002A ED 44         [ 8]   77 	neg
+   002C 4F            [ 4]   78 	ld c , a 		;; C = Player Speed Y(HL)
+   002D 06 00         [ 7]   79 	ld b , #0		;; B = PLayer Speed X(HL)
+   002F 18 F1         [12]   80 	jr move_player	;; Move Player
+   0031                      81 move_player_down:
+   0031 4E            [ 7]   82 	ld c , (hl)		;; C = Player Speed Y(HL)
+   0032 06 00         [ 7]   83 	ld b , #0		;; B = PLayer Speed X(HL)
+   0034 18 EC         [12]   84 	jr move_player	;; Move Player
+                             85 
+   0036                      86 move_player_left:
+   0036 7E            [ 7]   87 	ld a  , (hl)
+   0037 ED 44         [ 8]   88 	neg
+   0039 47            [ 4]   89 	ld b , a 		;; B = PLayer Speed Y(HL)
+   003A 0E 00         [ 7]   90 	ld c , #0		;; C = Player Speed X(HL)
+   003C 18 E4         [12]   91 	jr move_player	;; Move Player
+                             92 
+   003E                      93 move_player_right:
+   003E 46            [ 7]   94 	ld b , (hl)		;; B = PLayer Speed Y(HL)
+   003F 0E 00         [ 7]   95 	ld c , #0		;; C = Player Speed X(HL)
+   0041 18 DF         [12]   96 	jr move_player  ;; Move Player
+                             97 
+                             98 ;;===============================================================================
+                             99 ;; FUNCTION MOVE_ENTITY_ASM
+                            100 ;;
+                            101 ;; Input parameters :  HL => Pointer to TEntity
+                            102 ;;                      B => X Movement
+                            103 ;;                      C => Y Movement
+                            104 ;;===============================================================================
+                            105 
